@@ -1,7 +1,10 @@
 import cv2 as cv
 import numpy as np
 
-img1 = cv.imread('./resources/Negative.jpg')
+img1 = cv.imread('./resources/Negative.jpg',1)
+img1a=cv.cvtColor(img1,cv.COLOR_BGR2GRAY)
+
+
 x,y,z = img1.shape 
 img2 = np.zeros((x,y), np.uint8)
 b,g,r= cv.split(img1)
