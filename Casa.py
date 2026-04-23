@@ -16,10 +16,19 @@ def init():
 def draw_window():
 	glBegin(GL_QUADS)
 	glColor3f(0,0,1)
-	glVertex3f(-0.5, 0, 0.5)
-	glVertex3f(0.5, 0, 0.5)	
-	glVertex3f(0.5, 0.5, 0.5)
-	glVertex3f(-0.5, 0.5, 0.5)
+	glVertex3f(1.05, 0.5, -0.5)
+	glVertex3f(1.05, 0.5, 0.5)
+	glVertex3f(1.05, 0.8, 0.5)
+	glVertex3f(1.05, 0.8, -0.5)
+	glEnd()
+	
+def draw_garage():	
+	glBegin(GL_QUADS)
+	glColor3f(0.6,0.4,0.3)
+	glVertex3f(-0.5, 0, 1.05)
+	glVertex3f(0.5, 0, 1.05)	
+	glVertex3f(0.5, 0.5, 1.05)
+	glVertex3f(-0.5, 0.5, 1.05)
 	glEnd()
 	
 	
@@ -118,6 +127,7 @@ def draw_house():
 	draw_ground()  # Dibuja el suelo
 	draw_cube()    # Dibuja la base de la casa
 	draw_roof()    # Dibuja el techo
+	draw_garage()
 	draw_window()
 	
 	glfw.swap_buffers(window)
