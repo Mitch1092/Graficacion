@@ -1,6 +1,6 @@
 import glfw
 from OpenGL.GL import *
-from OpenGL.GLU import gluPerspective, gluLookAt
+from OpenGL.GLU import *
 import sys
 
 def init():
@@ -12,7 +12,30 @@ def init():
     glMatrixMode(GL_PROJECTION)
     gluPerspective(60, 1.0, 0.1, 100.0)  # Campo de visión más amplio
     glMatrixMode(GL_MODELVIEW)
+    
+def draw_tree(x,z):
+	draw_foliage(x,z)
+	draw_trunk(x,z)    
 
+def draw_trunk(x,z):
+    """Dibuja el tronco del árbol como un cilindro"""
+    glPushMatrix()
+    glColor3f(0.6, 0.3, 0.1)  # Marrón para el tronco
+    glTranslatef(x, 0, z)  # Posicionar el tronco
+    glRotatef(-90, 1, 0, 0)  # Rota para orientar el cilindro verticalmente
+    quadric = gluNewQuadric()
+    gluCylinder(quadric, 0.3, 0.3, 2.0, 32, 32)  # Radio y altura del cilindro
+    glPopMatrix()
+
+def draw_foliage(x,z):
+    """Dibuja las hojas del árbol como una esfera"""
+    glPushMatrix()
+    glColor3f(0.1, 0.8, 0.1)  # Verde para las hojas
+    glTranslatef(x, 2, z)  # Posicionar las hojas encima del tronco
+    quadric = gluNewQuadric()
+    gluSphere(quadric, 1.0, 32, 32)  # Radio de la esfera
+    glPopMatrix()
+    
 def draw_window():
 	glBegin(GL_QUADS)
 	glColor3f(0,0,1)
@@ -129,6 +152,9 @@ def draw_house():
 	draw_roof()    # Dibuja el techo
 	draw_garage()
 	draw_window()
+	draw_tree(3,2)
+	draw_tree(4,0)
+	draw_tree(-2,-2)
 	
 	glfw.swap_buffers(window)
 
