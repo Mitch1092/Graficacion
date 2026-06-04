@@ -1,8 +1,8 @@
 # DEMO PROCEDURAL
 
 La demo es una pieza de software artístico procedural de 48 segundos de duración que corre a 30 FPS, estructurada en 6 escenas de 8 segundos cada una.
-
 La paleta de colores se ha redefinido para usar exclusivamente tonos rojos y grises.
+Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
 
 ---
 
