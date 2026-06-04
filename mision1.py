@@ -1,22 +1,15 @@
 import cv2 as cv
 import numpy as np
 
-img = cv.imread('./resources/examen/m1_oscura.png', 0)
+img = cv.imread('resources/vehiculo.png')
 
-x,y = img.shape
-img2 = np.zeros((x,y), np.uint8)
+M = np.float32([[1, 0, 300], [0, 1, 200]])
 
-for i in range(x):
-	for j in range(y):
-		if (img[i,j]*50) > 255:
-			img2[i,j] = 255
-		if img[i,j]*50 < 0:
-			img2[i,j] = 0
-		else:
-			img2[i,j] = img[i,j]*50
+alto, ancho = img.shape[:2]
+img_trasladada = cv.warpAffine(img, M, (ancho, alto))
+cv.imwrite('mision1_resultado.png', img_trasladada)
 
-cv.imshow('img', img)
-cv.imshow('img2', img2)
+cv.imshow('Original', img)
+cv.imshow('Trasladada', img_trasladada)
 cv.waitKey(0)
 cv.destroyAllWindows()
-

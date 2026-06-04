@@ -1,33 +1,16 @@
-import cv2 as cv
+import cv2
 import numpy as np
-import math
 
-mitad1 = cv.imread('./resources/examen/m2_mitad1.png',0)
-mitad2 = cv.imread('./resources/examen/m2_mitad2.png',0)
+img_qr = cv2.imread('./resources/qr_rotado.png')
 
-img=np.ones([400,400], np.uint8)
+centro = (250, 250)
+angulo = 315
+escala = 1.0
 
-x, y = mitad2.shape
-rotated=np.ones([x,y], np.uint8)
+matriz_rotacion = cv2.getRotationMatrix2D(centro, angulo, escala)
+dimensiones = (img_qr.shape[1], img_qr.shape[0])
+img_resultado = cv2.warpAffine(img_qr, matriz_rotacion, dimensiones)
 
-for i in range(200):
-	for j in range(400):	
-		rotated[i,j] = mitad2[199-i,399-j]
-
-for i in range(200):
-	for j in range(400):	
-		img[i,j] = mitad1[i,j]           
-            
-            			
-
-for i in range(200):
-	for j in range(400):	
-		img[i+200,j] = rotated[i,j]
-
-
-#cv.imshow('rotated', rotated)
-cv.imshow('img', img)
-#cv.imshow('mitad1', mitad1)
-#cv.imshow('mitad2', mitad2)
-cv.waitKey(0)
-cv.destroyAllWindows()
+cv2.imshow('QR Rotado', img_resultado)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
