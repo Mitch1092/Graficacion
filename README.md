@@ -474,6 +474,41 @@ Este es el bloque más complejo y el núcleo de la funcionalidad de AR:
     *   `aspect_ratio < 1.8`: No debe ser demasiado alargado (para descartar otros objetos rectangulares).
     *   `mean_s < 60 and mean_v > 130`: Analiza el color HSV del interior del contorno; debe tener **saturación baja y brillo alto** — característico de una hoja de papel blanca.
 5.  Si pasa todos los filtros, ese contorno se guarda como `paper_contour` y se dibuja un borde verde sobre él en el frame.
+```python
+paper_contour = None
+            max_area = 0
+            for c in contours:
+                area = cv2.contourArea(c)
+                if area > 4000:
+
+                    hull = cv2.convexHull(c)
+                    peri = cv2.arcLength(hull, True)
+                    approx = cv2.approxPolyDP(hull, 0.03 * peri, True)
+                    
+                    if len(approx) == 4:
+
+                        rect = cv2.minAreaRect(approx)
+                        (cx_r, cy_r), (w_r, h_r), angle = rect
+                        if w_r > 0 and h_r > 0:
+                            aspect_ratio = max(w_r, h_r) / min(w_r, h_r)
+
+                            if aspect_ratio < 1.8:
+
+                                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                                mask = np.zeros(gray.shape, dtype=np.uint8)
+                                cv2.drawContours(mask, [approx], -1, 255, -1)
+                                mean_val = cv2.mean(hsv, mask=mask)
+                                mean_s = mean_val[1]
+                                mean_v = mean_val[2]
+                                
+                                if mean_s < 60 and mean_v > 130:
+                                    if area > max_area:
+                                        paper_contour = approx
+                                        max_area = area
+
+            if paper_contour is not None:
+                cv2.drawContours(frame2, [paper_contour], -1, (0, 255, 0), 3)
+```
 
 ### C. Actualización de la cámara virtual con teclado
 
@@ -516,7 +551,77 @@ Si se detectó la hoja de papel, se realiza el **pipeline completo de AR**:
 5.  **Configurar proyección**: Calcula el FOV de la cámara virtual usando la `focal_length` de la matriz intrínseca y llama a `gluPerspective` para que coincida con la lente real de la cámara web.
 6.  **`glLoadMatrixd`**: Carga la matriz de vista calculada directamente en OpenGL. Esto hace que la cámara virtual se comporte **exactamente igual** que la cámara física real.
 7.  **Dibujar escena**: Finalmente llama a `renderizar_escena_completa()` para dibujar toda la ciudad 3D encima de la hoja detectada.
+```python
+if paper_contour is not None:
+                img_pts = paper_contour.reshape(4, 2).astype(np.float32)
 
+                img_pts = img_pts[np.argsort(img_pts[:, 0])]
+                left_pair = img_pts[:2]
+                right_pair = img_pts[2:]
+                
+                top_left = left_pair[np.argmin(left_pair[:, 1])]
+                bottom_left = left_pair[np.argmax(left_pair[:, 1])]
+                top_right = right_pair[np.argmin(right_pair[:, 1])]
+                bottom_right = right_pair[np.argmax(right_pair[:, 1])]
+                
+                ordered_pts = np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.float32)
+
+                obj_pts = np.array([
+                    [-42.0, -42.0, 0.0],
+                    [ 42.0, -42.0, 0.0],
+                    [ 42.0,  42.0, 0.0],
+                    [-42.0,  42.0, 0.0]
+                ], dtype=np.float32)
+
+                focal_length = w
+                center = (w / 2.0, h / 2.0)
+                camera_matrix = np.array([
+                    [focal_length, 0.0, center[0]],
+                    [0.0, focal_length, center[1]],
+                    [0.0, 0.0, 1.0]
+                ], dtype=np.float64)
+                
+                dist_coeffs = np.zeros((4, 1))
+
+                success, rvec, tvec = cv2.solvePnP(obj_pts, ordered_pts, camera_matrix, dist_coeffs)
+
+                if success:
+                    rmat, _ = cv2.Rodrigues(rvec)
+                    view_matrix = np.eye(4, dtype=np.float64)
+                    view_matrix[0:3, 0:3] = rmat
+                    view_matrix[0:3, 3] = tvec.flatten()
+
+                    cv_to_gl = np.array([
+                        [1,  0,  0, 0],
+                        [0, -1,  0, 0],
+                        [0,  0, -1, 0],
+                        [0,  0,  0, 1]
+                    ], dtype=np.float64)
+                    
+                    view_matrix = np.dot(cv_to_gl, view_matrix)
+                    view_matrix = view_matrix.T
+
+                    fov_y = 2.0 * math.atan((h / 2.0) / focal_length)
+                    fov_y_deg = math.degrees(fov_y)
+                    
+                    glMatrixMode(GL_PROJECTION)
+                    glLoadIdentity()
+                    gluPerspective(fov_y_deg, w / h, 0.1, 1000.0)
+
+                    glMatrixMode(GL_MODELVIEW)
+                    glLoadIdentity()
+                    glLoadMatrixd(view_matrix.flatten())
+                    
+                    glPushMatrix()
+                    glRotatef(-90, 1, 0, 0) 
+                    glTranslatef(0.0, 20.0, 0.0)
+                    renderizar_escena_completa()
+                    glPopMatrix()
+                else:
+                    pass
+            else:
+                pass
+```              
 ---
 
 ## 4. Contador de FPS 
