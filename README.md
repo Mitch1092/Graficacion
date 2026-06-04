@@ -233,6 +233,13 @@ Las funciones matemáticas continuas se transforman a coordenadas de píxeles di
    $$X_{\text{pixel}} = X_{\text{continuo}} \cdot s_x + c_x$$
    $$Y_{\text{pixel}} = Y_{\text{continuo}} \cdot s_y + c_y$$
 3. **Discretización**: Los valores de punto flotante se redondean a enteros (`np.round`) y se reformatean a un arreglo de tipo `np.int32` con dimensiones `(-1, 1, 2)`, compatible con los algoritmos de dibujo vectorial de OpenCV (`cv2.polylines`).
+```python
+def poly_param(fx, fy, t0, t1, n, cx, cy, sx, sy):
+    ts = np.linspace(t0, t1, n, dtype=np.float32)
+    xs = fx(ts) * sx + cx
+    ys = fy(ts) * sy + cy
+    return np.round(np.stack([xs, ys], 1)).astype(np.int32).reshape((-1, 1, 2))
+```    
 
 ---
 
@@ -245,7 +252,32 @@ $$\text{smoothstep}(a, b, x) = 3y^2 - 2y^3 \quad \text{donde } y = \text{clamp}\
 * **Destello de Transición**: Un pequeño destello de luz blanca transiciona en el último instante mediante el peso de color blanco:
   $$\text{Frame} = \text{Frame} \cdot 1.0 + \text{Blanco} \cdot (0.12 \cdot \text{smoothstep}(7.6, 8.0, t_{\text{local}}))$$
 * **Fade Global**: Se aplica un fade-in lineal suavizado en los primeros 1.5 segundos del vídeo general, y un fade-out simétrico en los últimos 1.5 segundos.
+```python
+def timeline(t, rng, bufA, bufB, fire_state):
+ 
+    block = int(min(5, max(0, t // 8)))
+    t_in = t - block*8
 
+    # Render escena base
+    render_scene(bufA, block, t, rng, fire_state)
+    frame = bufA
+
+    if block < 5 and t_in >= 6.8:
+        render_scene(bufA, block, t, rng, fire_state)
+        render_scene(bufB, block+1, t, rng, fire_state)
+        a = smoothstep(6.8, 8.0, t_in)
+        frame = cv2.addWeighted(bufA, 1-a, bufB, a, 0)
+        flash = smoothstep(7.6, 8.0, t_in)
+        if flash > 0:
+            frame = cv2.addWeighted(frame, 1.0, np.full_like(frame, 255), 0.12*flash, 0)
+
+    fin = smoothstep(0.0, 1.5, t)
+    fout = 1.0 - smoothstep(DURATION - 1.5, DURATION, t)
+    f = fin * fout
+    if f < 0.999:
+        frame = (frame.astype(np.float32) * f).astype(np.uint8)
+    return frame
+```    
 ---
 
 # 3. Filtros de Posprocesamiento
