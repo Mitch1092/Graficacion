@@ -19,6 +19,24 @@ Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
   1. Primero con un grosor de `5` y un color rojo oscuro, sirviendo como halo de resplandor.
   2. Encima con un grosor de `2` y un color rojo brillante/blanquecino para el núcleo del texto.
 
+!['Escena 0'](./renders/Escena0.png)
+```python
+def scene_credits(img, t):
+    background_hsv_gradient(img, t, scene_type="grey")
+    rng = np.random.default_rng(1)
+    xs = rng.integers(0, W, 380)
+    ys = rng.integers(0, int(H*0.65), 380)
+    colors = np.zeros((380, 3), dtype=np.uint8)
+    colors[::3] = [50, 50, 240]  # BGR Rojo
+    colors[1::3] = [220, 220, 220]  # BGR Blanco
+    colors[2::3] = [160, 160, 160]  # BGR Gris
+    img[ys, xs] = colors
+    img[:] = cv2.GaussianBlur(img, (0,0), 0.6)
+    
+    cv2.putText(img, "DEMO PROCEDURAL", (42, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.95, (20, 20, 180), 5, cv2.LINE_AA)
+    cv2.putText(img, "DEMO PROCEDURAL", (42, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.95, (80, 80, 255), 2, cv2.LINE_AA)
+    cv2.putText(img, "Michael Aaron Villalon Nieves", (42, 310), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (180, 180, 180), 2, cv2.LINE_AA)
+```    
 ---
 
 ## Escena 1: Curva de Lissajous
@@ -33,6 +51,25 @@ Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
   * Frecuencia en Y: $b(t) = 4 + 1.2\cos(1.2t)$
   * Diferencia de Fase: $\delta(t) = \frac{\pi}{4} + 0.8\sin(1.5t)$
 * **Aplicación**: Renders en un fondo degradado rojo profundo. El color de la curva transiciona su saturación en HSV en función de $\sin(2.5t)$, pasando de blanco/gris a rojo brillante. Se aplica el efecto *glow* dibujando la curva primero con grosor `5` (rojo oscuro difuminado) y luego con grosor `2` (color base).
+!['Escena 1'](./renders/Escena1.png)
+```python
+    def scene_lissajous(img, t):
+    background_hsv_gradient(img, t, scene_type="red")
+    a = 5 + 1.5 * math.sin(t*1.0)
+    b = 4 + 1.2 * math.cos(t*1.2)
+    delta = math.pi/4 + 0.8*math.sin(t*1.5)
+    fx = lambda x: np.sin(a*x + delta)
+    fy = lambda x: np.sin(b*x)
+    pts = poly_param(fx, fy, 0, 2*math.pi, 1200, W*0.5, H*0.45, 300, 200)
+    
+    s_val = int(127 + 127 * math.sin(t * 2.5))
+    col = hsv_to_bgr(0, s_val, 245)
+    glow_col = hsv_to_bgr(0, 240, 160)
+    
+    # Renderizar silueta brillante y luego el centro más claro
+    cv2.polylines(img, [pts], False, glow_col, 5, cv2.LINE_AA)
+    cv2.polylines(img, [pts], False, col, 2, cv2.LINE_AA)
+```
 
 ---
 
@@ -50,6 +87,29 @@ Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
 * **Círculos "Beats"**: Se dibujan 8 círculos en la parte inferior de la pantalla cuyas posiciones X están espaciadas uniformemente. Sus radios se modulan de forma armónica según el tiempo y su índice:
   $$r_{\text{beat}}(t, i) = \max(1, 22 + 15\sin(6t + 0.8i))$$
   Los círculos alternan colores entre gris y rojo según si su índice $i$ es par o impar.
+!['Escena 2'](./renders/Escena2.png)
+```python
+def scene_rose_polar(img, t):
+    background_hsv_gradient(img, t, scene_type="grey")
+    # Rosa polar: r = cos(k*theta)
+    k = 6
+    theta0 = t * 2.5
+    fx = lambda th: np.cos(k*th) * np.cos(th + theta0)
+    fy = lambda th: np.cos(k*th) * np.sin(th + theta0)
+    pts = poly_param(fx, fy, 0, 2*math.pi, 1500, W*0.5, H*0.45, 270, 270)
+    
+    s_val = int(120 + 120 * math.sin(t * 1.8))
+    col = hsv_to_bgr(0, s_val, 255)
+    glow_col = hsv_to_bgr(0, 255, 150)
+    
+    cv2.polylines(img, [pts], False, glow_col, 5, cv2.LINE_AA)
+    cv2.polylines(img, [pts], False, col, 2, cv2.LINE_AA)
+    
+    for i in range(8):
+        r = int(22 + 15*np.sin(t*6.0 + i*0.8))
+        color = (60, 60, 220) if i % 2 == 0 else (160, 160, 160)
+        cv2.circle(img, (int(W*0.12 + i*90), int(H*0.82)), max(1, r), color, 2, cv2.LINE_AA)
+```  
 
 ---
 
@@ -65,7 +125,25 @@ Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
   * Distancia del punto de lápiz: $d = 8.0$
   * Moduladores de fase: $\phi_x(t) = 0.4\sin(1.8t)$ y $\phi_y(t) = 0.4\cos(1.5t)$
 * **Aplicación**: Genera curvas densas y entrelazadas sobre un fondo rojo. La fase de rotación oscilan con el tiempo.
-
+!['Escena 3'](./renders/Escena3.png)
+```python
+def scene_spirograph(img, t):
+    background_hsv_gradient(img, t, scene_type="red")
+    # Hipotrocoide (spirograph): (R-r)cos(t) + d cos((R-r)/r * t)
+    R, r, d = 13.0, 5.0, 8.0
+    w = (R - r) / r
+    fx = lambda x: (R-r)*np.cos(x) + d*np.cos(w*x + 0.4*np.sin(t*1.8))
+    fy = lambda x: (R-r)*np.sin(x) - d*np.sin(w*x + 0.4*np.cos(t*1.5))
+    pts = poly_param(fx, fy, 0, 16*math.pi, 2000, W*0.5, H*0.46, 18, 18)
+    
+    s_val = int(127 + 127 * math.sin(t * 1.5))
+    col = hsv_to_bgr(0, s_val, 230)
+    glow_col = hsv_to_bgr(0, 255, 160)
+    
+    cv2.polylines(img, [pts], False, glow_col, 5, cv2.LINE_AA)
+    cv2.polylines(img, [pts], False, col, 2, cv2.LINE_AA)
+    img[:] = post_scanlines(img, 0.18)
+```  
 ---
 
 ## Escena 4: Partículas
@@ -75,7 +153,24 @@ Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
   $$x_{\text{new}} = (x + 110\sin(y/55.0 + 4t) + 40\cos(1.8t)) \pmod W$$
   $$y_{\text{new}} = (y + 85\cos(x/75.0 + 3t) + 30\sin(2.2t)) \pmod H$$
 * **Aplicación**: Las partículas se dividen en dos grupos (mitad rojas y mitad grises). Se aplica un ligero desenfoque gaussiano de radio `1.1` para simular dispersión de luz y profundidad.
-
+!['Escena 4'](./renders/Escena4.png)
+```python
+def scene_particles(img, t, rng):
+    background_hsv_gradient(img, t, scene_type="grey")
+    n = 1200
+    xs = rng.random(n) * W
+    ys = rng.random(n) * H
+    xs = (xs + 110*np.sin(ys/55.0 + t*4.0) + 40*np.cos(t*1.8)) % W
+    ys = (ys + 85*np.cos(xs/75.0 + t*3.0) + 30*np.sin(t*2.2)) % H
+    v = (0.5 + 0.5*np.sin(t*4.0)).astype(float) if hasattr(t, "astype") else (0.5 + 0.5*math.sin(t*4.0))
+    
+    col_red = hsv_to_bgr(0, 240, int(200 + 55*v))
+    col_grey = hsv_to_bgr(0, 15, int(200 + 55*v))
+    
+    img[ys[:600].astype(np.int32), xs[:600].astype(np.int32)] = col_red
+    img[ys[600:].astype(np.int32), xs[600:].astype(np.int32)] = col_grey
+    img[:] = cv2.GaussianBlur(img, (0,0), 1.1)
+```  
 ---
 
 ## Escena 5: Fuego Procedural
@@ -95,7 +190,38 @@ Al correr la demo se exporta el video en formato mp4 en la misma carpeta.
      * **Valor (V)**: Aumenta proporcionalmente al calor:
        $$V = 15 + 240 \times \text{clip}(Heat, 0.0, 1.0)$$
   6. **Elementos Adicionales**: Se dibuja un suelo rectangular de color gris carbón y se superponen 160 chispas de color mezclado (rojo y gris) que suben de forma difusa.
+  !['Escena 5'](./renders/Escena5.png)
+```python
+def scene_fire(img, t, state):
+    heat = state["heat"]
+    rng = state["rng"]
+    heat[:] = (heat * 0.93).astype(np.float32)
 
+    base_n = 1400
+    xs = rng.integers(0, W, base_n)
+    ys = rng.integers(int(H*0.82), H, base_n)
+    heat[ys, xs] += rng.random(base_n) * (0.8 + 0.6*(0.5+0.5*math.sin(t*5.0)))
+
+    heat[:] = cv2.GaussianBlur(heat, (0, 0), 2.2)
+    heat[:-2, :] = heat[2:, :] 
+    heat[-2:, :] *= 0.0
+
+    h = np.zeros_like(heat, dtype=np.uint8)  
+    s = (245 * (1.0 - np.clip(heat - 0.4, 0.0, 0.6) * 1.6)).astype(np.uint8)
+    v = (15 + 240 * np.clip(heat, 0, 1)).astype(np.uint8)
+    hsv = np.dstack([h, s, v]).astype(np.uint8)
+    img[:] = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+
+    cv2.rectangle(img, (0, int(H*0.83)), (W, H), (20, 20, 20), -1)  # Gris carbón oscuro
+    sparks = 160
+    sx = rng.integers(0, W, sparks)
+    sy = rng.integers(int(H*0.55), int(H*0.9), sparks)
+    
+    for idx in range(sparks):
+        color = (40, 40, 240) if idx % 2 == 0 else (180, 180, 180)
+        img[sy[idx], sx[idx]] = color
+    img[:] = cv2.GaussianBlur(img, (0,0), 0.6)
+```  
 ---
 
 # 2. Transformaciones de Coordenadas e Interpolaciones
@@ -259,7 +385,7 @@ Para dotar de vida a los modelos, se utilizan las siguientes funciones de interp
 3.  **Vuelo Circular (`animar_vuelo_circular`)**: Usado en las naves espaciales. Calcula su posición X y Z en una órbita circular alrededor de un centro. Además, calcula la dirección tangente del círculo (`-sin(angulo)`, `cos(angulo)`) y usa un arco-tangente (`atan2`) para rotar la nave de manera que siempre apunte hacia el frente de su trayectoria de vuelo.
 
 ---
-# Resumen de `main()` para realidad aumentada:
+# Función de `main()` para realidad aumentada:
 
 ---
 

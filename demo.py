@@ -18,7 +18,6 @@ def poly_param(fx, fy, t0, t1, n, cx, cy, sx, sy):
     return np.round(np.stack([xs, ys], 1)).astype(np.int32).reshape((-1, 1, 2))
 
 def hsv_to_bgr(h, s, v):
-    # OpenCV: H en [0,179], S,V en [0,255]
     hsv = np.uint8([[[h % 180, np.clip(s, 0, 255), np.clip(v, 0, 255)]]])
     return tuple(int(x) for x in cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0, 0])
 
@@ -43,24 +42,21 @@ def post_posterize(img, q=32):
     return ((img // q) * q).astype(np.uint8)
 
 def background_hsv_gradient(img, t, scene_type="grey"):
-    # Degradado vertical en HSV para cambiar “ambiente” por escena
     hsv = np.zeros((H, W, 3), np.uint8)
     ys = np.linspace(0, 1, H, dtype=np.float32)
     wave = 12 * np.sin(t * 1.2 + ys * 2.0)
     
     if scene_type == "grey":
-        # Degradado de gris oscuro a gris medio-oscuro
         hsv[:, :, 0] = 0
-        hsv[:, :, 1] = 0  # Sin saturación = gris
+        hsv[:, :, 1] = 0
         val = (35 + 40 * (1 - ys) + wave * 0.4).astype(np.float32)
         hsv[:, :, 2] = np.clip(val, 15, 90).astype(np.uint8)[:, None]
     elif scene_type == "red":
-        # Degradado de rojo oscuro
-        hsv[:, :, 0] = 0  # Tono = rojo (0)
-        hsv[:, :, 1] = 160  # Saturación media-alta
+        hsv[:, :, 0] = 0  
+        hsv[:, :, 1] = 160  
         val = (25 + 30 * (1 - ys) + wave * 0.4).astype(np.float32)
         hsv[:, :, 2] = np.clip(val, 10, 80).astype(np.uint8)[:, None]
-    else:  # "mixed" o tono rojo grisáceo apagado
+    else:
         hsv[:, :, 0] = 0
         hsv[:, :, 1] = 80
         val = (30 + 35 * (1 - ys) + wave * 0.4).astype(np.float32)
@@ -70,7 +66,6 @@ def background_hsv_gradient(img, t, scene_type="grey"):
 
 def scene_credits(img, t):
     background_hsv_gradient(img, t, scene_type="grey")
-    # “estrellas” deterministas en tonos de rojo, blanco y gris
     rng = np.random.default_rng(1)
     xs = rng.integers(0, W, 380)
     ys = rng.integers(0, int(H*0.65), 380)
@@ -81,7 +76,6 @@ def scene_credits(img, t):
     img[ys, xs] = colors
     img[:] = cv2.GaussianBlur(img, (0,0), 0.6)
     
-    # Efecto de brillo de neon en el titulo principal
     cv2.putText(img, "DEMO PROCEDURAL", (42, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.95, (20, 20, 180), 5, cv2.LINE_AA)
     cv2.putText(img, "DEMO PROCEDURAL", (42, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.95, (80, 80, 255), 2, cv2.LINE_AA)
     cv2.putText(img, "Michael Aaron Villalon Nieves", (42, 310), cv2.FONT_HERSHEY_SIMPLEX, 0.85, (180, 180, 180), 2, cv2.LINE_AA)
@@ -95,7 +89,6 @@ def scene_lissajous(img, t):
     fy = lambda x: np.sin(b*x)
     pts = poly_param(fx, fy, 0, 2*math.pi, 1200, W*0.5, H*0.45, 300, 200)
     
-    # Transición dinámica de saturación de rojo a blanco/gris
     s_val = int(127 + 127 * math.sin(t * 2.5))
     col = hsv_to_bgr(0, s_val, 245)
     glow_col = hsv_to_bgr(0, 240, 160)
@@ -120,7 +113,6 @@ def scene_rose_polar(img, t):
     cv2.polylines(img, [pts], False, glow_col, 5, cv2.LINE_AA)
     cv2.polylines(img, [pts], False, col, 2, cv2.LINE_AA)
     
-    # Círculos “beats” en rojo y gris
     for i in range(8):
         r = int(22 + 15*np.sin(t*6.0 + i*0.8))
         color = (60, 60, 220) if i % 2 == 0 else (160, 160, 160)
@@ -150,48 +142,40 @@ def scene_particles(img, t, rng):
     ys = rng.random(n) * H
     xs = (xs + 110*np.sin(ys/55.0 + t*4.0) + 40*np.cos(t*1.8)) % W
     ys = (ys + 85*np.cos(xs/75.0 + t*3.0) + 30*np.sin(t*2.2)) % H
-    # “brillo” por velocidad (fake)
     v = (0.5 + 0.5*np.sin(t*4.0)).astype(float) if hasattr(t, "astype") else (0.5 + 0.5*math.sin(t*4.0))
     
     col_red = hsv_to_bgr(0, 240, int(200 + 55*v))
     col_grey = hsv_to_bgr(0, 15, int(200 + 55*v))
     
-    # Dividir las partículas en rojas y grises/blancas
     img[ys[:600].astype(np.int32), xs[:600].astype(np.int32)] = col_red
     img[ys[600:].astype(np.int32), xs[600:].astype(np.int32)] = col_grey
     img[:] = cv2.GaussianBlur(img, (0,0), 1.1)
 
 def scene_fire(img, t, state):
-    # “Fuego” procedural: partículas + heatmap + paleta HSV roja y gris
     heat = state["heat"]
     rng = state["rng"]
     heat[:] = (heat * 0.93).astype(np.float32)
 
-    # Inyección en la base (más calor = más fuego)
     base_n = 1400
     xs = rng.integers(0, W, base_n)
     ys = rng.integers(int(H*0.82), H, base_n)
     heat[ys, xs] += rng.random(base_n) * (0.8 + 0.6*(0.5+0.5*math.sin(t*5.0)))
 
-    # “subida” del calor: blur anisotrópico + desplazamiento hacia arriba
     heat[:] = cv2.GaussianBlur(heat, (0, 0), 2.2)
-    heat[:-2, :] = heat[2:, :]  # desplaza hacia arriba (convección barata)
+    heat[:-2, :] = heat[2:, :] 
     heat[-2:, :] *= 0.0
 
-    # Mapeo a color con HSV para tonos rojos y núcleo blanco/gris
-    h = np.zeros_like(heat, dtype=np.uint8)  # Tono = rojo (0)
+    h = np.zeros_like(heat, dtype=np.uint8)  
     s = (245 * (1.0 - np.clip(heat - 0.4, 0.0, 0.6) * 1.6)).astype(np.uint8)
     v = (15 + 240 * np.clip(heat, 0, 1)).astype(np.uint8)
     hsv = np.dstack([h, s, v]).astype(np.uint8)
     img[:] = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-    # Silueta y chispas
     cv2.rectangle(img, (0, int(H*0.83)), (W, H), (20, 20, 20), -1)  # Gris carbón oscuro
     sparks = 160
     sx = rng.integers(0, W, sparks)
     sy = rng.integers(int(H*0.55), int(H*0.9), sparks)
     
-    # Chispas en mezcla de rojo y gris
     for idx in range(sparks):
         color = (40, 40, 240) if idx % 2 == 0 else (180, 180, 180)
         img[sy[idx], sx[idx]] = color
@@ -212,8 +196,7 @@ def render_scene(buf, scene_id, t, rng, fire_state):
         scene_fire(buf, t, fire_state)
 
 def timeline(t, rng, bufA, bufB, fire_state):
-    # 6 escenas (0..5) con 5 transiciones entre ellas
-    # Duración 48s -> 6 bloques de 8s
+ 
     block = int(min(5, max(0, t // 8)))
     t_in = t - block*8
 
@@ -221,18 +204,15 @@ def timeline(t, rng, bufA, bufB, fire_state):
     render_scene(bufA, block, t, rng, fire_state)
     frame = bufA
 
-    # 5 transiciones: de s a s+1 en los últimos 1.2s de cada bloque
     if block < 5 and t_in >= 6.8:
         render_scene(bufA, block, t, rng, fire_state)
         render_scene(bufB, block+1, t, rng, fire_state)
         a = smoothstep(6.8, 8.0, t_in)
         frame = cv2.addWeighted(bufA, 1-a, bufB, a, 0)
-        # pequeño “flash” al final de transición
         flash = smoothstep(7.6, 8.0, t_in)
         if flash > 0:
             frame = cv2.addWeighted(frame, 1.0, np.full_like(frame, 255), 0.12*flash, 0)
 
-    # Fade in/out global
     fin = smoothstep(0.0, 1.5, t)
     fout = 1.0 - smoothstep(DURATION - 1.5, DURATION, t)
     f = fin * fout
@@ -252,12 +232,10 @@ def main():
 
     total_frames = int(DURATION * FPS)
     
-    # Configurar exportación de vídeo a MP4
+    #Exportación de video
     video_filename = 'demo.mp4'
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out_video = cv2.VideoWriter(video_filename, fourcc, FPS, (W, H))
-    
-    # Comprobar si hay un entorno gráfico disponible
     has_display = "DISPLAY" in os.environ
 
     t0 = time.perf_counter()
@@ -268,7 +246,6 @@ def main():
         frame = post_scanlines(frame, 0.16)
         frame = post_posterize(frame, 24)
         
-        # Guardar fotograma en el vídeo
         out_video.write(frame)
         
         if has_display:
@@ -277,7 +254,6 @@ def main():
                 print("Exportación interrumpida por el usuario.")
                 break
         else:
-            # Mostrar progreso en consola si se ejecuta sin interfaz gráfica
             if (i + 1) % 100 == 0 or i == total_frames - 1:
                 print(f"Progreso de exportación: {i + 1}/{total_frames} fotogramas ({(i + 1)/total_frames*100:.1f}%)")
                 
