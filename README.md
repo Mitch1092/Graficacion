@@ -1,18 +1,3 @@
-Ran command: `git push --set-upstream origin primerpractica`
-Ran command: `git switch --orphan trabajos`
-Edited README.md
-Ran command: `/home/michael/MEGA/Materias/Graficacion/Entorno/asus/bin/python3.12 /home/michael/MEGA/Materias/Graficacion/Tareas/Clase-11-feb-2026.py`
-Ran command: `/home/michael/MEGA/Materias/Graficacion/Entorno/asus/bin/python3.12 /home/michael/MEGA/Materias/Graficacion/Tareas/Clase-12-feb-2026.py`
-Ran command: `/home/michael/MEGA/Materias/Graficacion/Entorno/asus/bin/python3.12 /home/michael/MEGA/Materias/Graficacion/Tareas/Clase-16-feb-2026.py`
-Viewed CapturaCamara.py:1-28
-Listed directory Tareas
-Ran command: `for f in /home/michael/MEGA/Materias/Graficacion/Tareas/*.py; do echo "===FILE: $f==="; cat "$f"; echo; done`
-
-Aquí está el resumen de todos los archivos `.py` en la carpeta `Tareas`:
-
----
-
-## 📁 Archivos Python en `/Tareas`
 
 | Archivo | Descripción |
 |---|---|
