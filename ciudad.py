@@ -7,7 +7,6 @@ import numpy as np
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import math
-import keyboard as key 
 import random
 
 
@@ -760,14 +759,14 @@ def dibujar_estrellas():
 
 def dibujar_nubes():
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=-25, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=8
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=-20, distancia=2.0, velocidad=0.3, eje_x=True
@@ -775,63 +774,63 @@ def dibujar_nubes():
         a+=15
 
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=-15, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=9
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=-10, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=12
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=-5, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=10
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=0, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=15
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=5, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=9
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=10, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=12
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=15, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=8
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=20, distancia=2.0, velocidad=0.3, eje_x=True
         )
         a+=15
     a=-20
-    for i in range(40):
+    for i in range(10):
         animar_movimiento_lineal(
         lambda: nube(),
         x=a, y=-3, z=25, distancia=2.0, velocidad=0.3, eje_x=True

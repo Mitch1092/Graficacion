@@ -197,8 +197,6 @@ graph LR
 # CIUDAD
 
 ### 1. Paradigma de Modelado: Construcción Procedimental
-A diferencia de los motores de videojuegos modernos que importan archivos en formatos externos (como `.obj` o `.fbx`), en este proyecto los modelos se construyen de forma **procedimental o algorítmica** en tiempo de ejecución. 
-
 Se utilizan primitivas geométricas básicas (puntos, líneas, triángulos y cuadriláteros) dibujadas mediante funciones del *fixed-function pipeline* clásico de OpenGL (`glBegin` / `glEnd`) y funciones de utilidad de GLU (como `gluSphere`).
 
 ---
@@ -261,20 +259,11 @@ Para dotar de vida a los modelos, se utilizan las siguientes funciones de interp
 3.  **Vuelo Circular (`animar_vuelo_circular`)**: Usado en las naves espaciales. Calcula su posición X y Z en una órbita circular alrededor de un centro. Además, calcula la dirección tangente del círculo (`-sin(angulo)`, `cos(angulo)`) y usa un arco-tangente (`atan2`) para rotar la nave de manera que siempre apunte hacia el frente de su trayectoria de vuelo.
 
 ---
-### Resumen del Trabajo Realizado
-* He analizado la estructura de modelado procedural en `ciudad.py` y `ciudadRealidad.py`.
-* He elaborado una explicación técnica y detallada de cómo se construyen, transforman y animan los objetos geométricos usando primitivas de OpenGL y operaciones matemáticas.
-
-
-
-Viewed ciudadRealidad.py:1371-1396
-Viewed ciudadRealidad.py:1381-1634
-
-Aquí está la explicación completa de `def main()`, que es el **punto de entrada y el corazón de toda la aplicación**. Se puede dividir en 5 bloques bien definidos:
+# Resumen de `main()` para realidad aumentada:
 
 ---
 
-## 1. Inicialización (líneas 1382–1396)
+## 1. Inicialización
 
 ```python
 global moverx, movery, moverz, dx, dz, girar
@@ -290,7 +279,7 @@ setup_lights()
 
 ---
 
-## 2. Apertura de la Cámara (línea 1399–1400)
+## 2. Apertura de la Cámara 
 
 ```python
 cap = cv2.VideoCapture(0)
@@ -302,7 +291,7 @@ cv2.waitKey(2000)
 
 ---
 
-## 3. El Loop Principal (líneas 1402–1618)
+## 3. El Loop Principal 
 
 Esta es la parte que se ejecuta **una vez por fotograma**, a cada ciclo del bucle `while`.
 
@@ -372,7 +361,7 @@ Si se detectó la hoja de papel, se realiza el **pipeline completo de AR**:
 
 ---
 
-## 4. Contador de FPS (líneas 1612–1618)
+## 4. Contador de FPS 
 
 ```python
 if current_time - fps_timer >= 1.0:
@@ -383,7 +372,7 @@ Cada segundo actualiza el título de la ventana con los FPS actuales.
 
 ---
 
-## 5. Limpieza Final (líneas 1625–1630)
+## 5. Limpieza Final 
 
 ```python
 finally:
