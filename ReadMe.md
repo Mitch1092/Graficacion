@@ -1,4 +1,4 @@
-# Introducción
+# DEMO PROCEDURAL
 
 La demo es una pieza de software artístico procedural de 48 segundos de duración que corre a 30 FPS, estructurada en 6 escenas de 8 segundos cada una.
 
@@ -194,3 +194,207 @@ graph LR
   * *Por qué*: Reduce los gradientes suaves de color para dar un aspecto estilizado de videojuego clásico o *pixel-art*.
 
 
+# CIUDAD
+
+### 1. Paradigma de Modelado: Construcción Procedimental
+A diferencia de los motores de videojuegos modernos que importan archivos en formatos externos (como `.obj` o `.fbx`), en este proyecto los modelos se construyen de forma **procedimental o algorítmica** en tiempo de ejecución. 
+
+Se utilizan primitivas geométricas básicas (puntos, líneas, triángulos y cuadriláteros) dibujadas mediante funciones del *fixed-function pipeline* clásico de OpenGL (`glBegin` / `glEnd`) y funciones de utilidad de GLU (como `gluSphere`).
+
+---
+
+### 2. Bloques de Construcción (Primitivas Básicas)
+Para dar vida a los modelos, se desarrollaron funciones base que generan formas elementales con control de color y normales de iluminación:
+
+*   **`plataforma_plana(lado1, lado2, altura, color)`**: Dibuja un plano horizontal rectangular usando `GL_QUADS`.
+*   **`anillo_elipsoide(a1, b1, a2, b2, angulo_limite, capa, color)`**: Genera una banda circular o elíptica en el plano XZ usando `GL_QUAD_STRIP`. Calcula los límites internos y externos de los vértices trigonométricamente con `cos` y `sin`.
+*   **`cubo(alto, ancho, largo, color_lados, color_arriba, color_abajo)`**: Define un paralelepípedo de 6 caras cuadriláteras (`GL_QUADS`). La clave aquí es que aplica una normal explícita (`glNormal3f`) para cada cara (por ejemplo, `(0.0, 0.0, 1.0)` para la cara frontal), lo que permite que las luces de la escena incidan de manera realista sobre el volumen.
+*   **`piramide(alto, ancho, largo, altura_base, color)`**: Crea una pirámide de base cuadrangular usando `GL_TRIANGLES` para los costados. Llama a la función auxiliar `normal_tri` para calcular dinámicamente la normal unitaria de cada cara triangular mediante el producto cruzado de sus vectores.
+*   **`esfera(radio, color)`**: Renderiza una esfera mediante la clase de utilidad cuadrática de GLU (`gluNewQuadric` y `gluSphere`).
+*   **`cilindro_solido(ang_in, ang_fin, radio, largo, color)`**: Crea un cilindro cerrado. Usa un `GL_TRIANGLE_STRIP` para la pared lateral y dos `GL_TRIANGLE_FAN` (abanicos de triángulos) para sellar las tapas en ambos extremos.
+
+---
+
+### 3. Modelado de Objetos Complejos (Jerarquía de Transformaciones)
+Los modelos complejos se construyen combinando las primitivas básicas dentro de bloques **`glPushMatrix()`** y **`glPopMatrix()`**. Esto crea una estructura jerárquica en la que las transformaciones (traslación, rotación y escalado) de una parte pueden afectar o no a las siguientes.
+
+#### A. Viviendas (Infonavit)
+*   **`infonavit` e `infonavit_sin_puerta`**: Representan casas de interés social de la ciudad.
+    *   **Estructura**: El cuerpo de la casa es un gran `cubo`. Las ventanas son planos (`plataforma_plana`) rotados $90^\circ$ sobre el eje X y pegados ligeramente por delante de la pared frontal (`z = 2.01`) para evitar el efecto de parpadeo de texturas (*Z-fighting*).
+    *   **Puertas deslizantes**: Son dos plataformas planas verticales que se desplazan a la izquierda y derecha mediante una variable `abrir`, revelando un fondo oscuro que simula el interior de la casa.
+
+#### B. Torre Supersónica
+*   **`torre_supersonica`**: Es el edificio futurista principal.
+    *   **Pilar central**: Un cilindro sólido alto y delgado.
+    *   **Anillos decorativos**: Dos `anillo_elipsoide` a media altura que rotan de manera continua en sentido de las manecillas del reloj.
+    *   **Platillo de la cima**: Compuesto por anillos elipsoides horizontales concéntricos, una cabina cilíndrica central y una **cúpula de cristal**. Para la cúpula, se habilita la mezcla de colores (`GL_BLEND`) y se dibuja una esfera con un color celeste que posee un valor alfa de `0.45` para lograr transparencia.
+    *   **Antena**: Un cilindro muy delgado con una esfera roja autoluminosa en la punta.
+
+#### C. Dron Policial y Robots
+*   **`dron_policial`**: Consta de un cuerpo central (`cubo` negro), una luz piloto esférica y una hélice superior formada por dos finos cubos cruzados. La hélice gira rápidamente en base al tiempo (`glRotatef(t * 1500.0, 0.0, 1.0, 0.0)`).
+*   **`robot_patrulla`**: Un chasis cúbico con propulsores cilíndricos en los costados y un faro esférico brillante de color cian al frente.
+*   **`camara_vigilancia_rotatoria`**: Un poste vertical que sostiene una cabeza cúbica que rota horizontalmente y se inclina hacia abajo, simulando un barrido de vigilancia con un lente esférico rojo.
+
+#### D. Habitantes (Personas y Patinetas)
+*   **`dibujar_persona_supersonica`**: La silueta humana se modela con una esfera para la cabeza y cilindros sólidos para el torso, los brazos y las piernas. Recibe parámetros de rotación para cada extremidad (`ang_brazo_iz`, etc.) para poder simular poses o movimientos.
+*   **`dibujar_persona_caminando`**: Utiliza el modelo anterior y calcula las oscilaciones de las extremidades con una función senoidal en función del tiempo (`30.0 * math.sin(t * 4.0)`). Así, mientras un brazo va hacia adelante, el otro va hacia atrás, recreando el ciclo de caminata.
+*   **`dibujar_persona_en_patineta`**: Dibuja una tabla (`cubo`) y cuatro pequeñas ruedas (`esfera`). Coloca encima al personaje humano en una pose estática de equilibrio.
+
+#### E. El Monstruo
+*   **`monstruo`**: Es una criatura orgánica modelada con geometría puramente esférica.
+    *   El cuerpo se divide en tres niveles o "capas" de esferas verdes de distintos tamaños distribuidas circularmente en base a ángulos trigonométricos (`i * 45` grados, etc.).
+    *   Para dar un efecto orgánico, el tamaño del cuerpo oscila ligeramente usando escalado por tiempo (`glScalef(1 * a, 1 * a, 1 * a)` donde `a` depende de `sin(t)`).
+    *   El ojo se compone de una esfera blanca grande y una pupila negra pequeña que orbita alrededor del centro del ojo mediante trayectorias calculadas con `cos(t)` y `sin(t)`.
+
+#### F. Basura y Elementos del Entorno
+*   **`dibujar_monton_basura`**: Simula una pila de desechos desordenada. Se logra apilando varios cubos de colores marrones y grises con diferentes tamaños, inclinaciones (`glRotatef`) y posiciones semialeatorias.
+*   **`dibujar_lata_rodante`**: Una pequeña lata cilíndrica roja que avanza y regresa horizontalmente en la calle. Para que se vea realista, la rotación sobre su eje Z (`glRotatef(-giro_lata, 0, 0, 1)`) está vinculada matemáticamente con la distancia lineal recorrida, simulando que rueda sin resbalar sobre el suelo.
+*   **`nube`**: Creada con un grupo de 5 esferas rosas dispuestas de manera escalonada.
+
+---
+
+### 4. Sistema de Animación Global
+Para dotar de vida a los modelos, se utilizan las siguientes funciones de interpolación y movimiento basadas en el tiempo del sistema (`glfw.get_time()`):
+
+1.  **Movimiento Lineal Simple (`animar_movimiento_lineal`)**: Traslada un objeto de ida y vuelta de manera suave a lo largo de un eje usando una función sinusoidal aplicada a la traslación.
+2.  **Patrullaje Lineal con Giro (`animar_patrullaje_lineal` / `animar_patrullaje_persona`)**: Mueve drones o peatones en línea recta. Cuando llegan al límite de su recorrido, la función ejecuta un giro de $180^\circ$ sobre su eje vertical (Y) en un rango controlado (`r_giro`), asegurando que el objeto siempre mire en la dirección hacia la que se está desplazando.
+3.  **Vuelo Circular (`animar_vuelo_circular`)**: Usado en las naves espaciales. Calcula su posición X y Z en una órbita circular alrededor de un centro. Además, calcula la dirección tangente del círculo (`-sin(angulo)`, `cos(angulo)`) y usa un arco-tangente (`atan2`) para rotar la nave de manera que siempre apunte hacia el frente de su trayectoria de vuelo.
+
+---
+### Resumen del Trabajo Realizado
+* He analizado la estructura de modelado procedural en `ciudad.py` y `ciudadRealidad.py`.
+* He elaborado una explicación técnica y detallada de cómo se construyen, transforman y animan los objetos geométricos usando primitivas de OpenGL y operaciones matemáticas.
+
+
+
+Viewed ciudadRealidad.py:1371-1396
+Viewed ciudadRealidad.py:1381-1634
+
+Aquí está la explicación completa de `def main()`, que es el **punto de entrada y el corazón de toda la aplicación**. Se puede dividir en 5 bloques bien definidos:
+
+---
+
+## 1. Inicialización (líneas 1382–1396)
+
+```python
+global moverx, movery, moverz, dx, dz, girar
+window = init_glfw()
+setup_opengl()
+setup_lights()
+```
+
+*   Declara las variables de cámara como **globales** para poder modificarlas desde `main`.
+*   Inicializa la ventana GLFW. Si falla (por ejemplo, si el entorno no soporta OpenGL), atrapa el error y termina limpiamente.
+*   Llama a `setup_opengl()` (activa depth test, blending, etc.) y `setup_lights()` (configura las dos fuentes de luz de la escena).
+*   Crea el ID de una textura GPU (`bg_texture`) que servirá para proyectar el video de la cámara como fondo.
+
+---
+
+## 2. Apertura de la Cámara (línea 1399–1400)
+
+```python
+cap = cv2.VideoCapture(0)
+cv2.waitKey(2000)
+```
+
+*   Abre la cámara web del dispositivo (índice `0` = cámara principal).
+*   Espera **2 segundos** antes de empezar a procesar. Esto le da tiempo al sensor de la cámara de estabilizarse y ajustar la exposición.
+
+---
+
+## 3. El Loop Principal (líneas 1402–1618)
+
+Esta es la parte que se ejecuta **una vez por fotograma**, a cada ciclo del bucle `while`.
+
+### A. Captura y procesamiento de video con OpenCV
+
+```python
+ret, frame = cap.read()
+frame = cv2.flip(frame, 1)
+```
+Lee un fotograma de la cámara y lo voltea horizontalmente (efecto espejo, para que sea más intuitivo).
+
+### B. Detección de hoja de papel (Realidad Aumentada)
+
+Este es el bloque más complejo y el núcleo de la funcionalidad de AR:
+
+1.  **Umbralización**: Convierte el frame a escala de grises, aplica un desenfoque gaussiano y luego usa el algoritmo de **Otsu** para encontrar automáticamente el mejor valor de umbral y binarizar la imagen (blanco/negro). Si el umbral calculado es extremo (demasiado oscuro o demasiado claro), usa un valor fijo de `120` como fallback.
+2.  **Cierre morfológico**: Aplica un kernel 5×5 para rellenar pequeños huecos y unir contornos fragmentados en la imagen umbralizada.
+3.  **Búsqueda de contornos**: Encuentra todos los contornos externos de la imagen binarizada.
+4.  **Filtros para identificar la hoja**:
+    *   `area > 4000`: Descarta objetos demasiado pequeños.
+    *   `len(approx) == 4`: El contorno debe ser cuadrilátero (4 lados).
+    *   `aspect_ratio < 1.8`: No debe ser demasiado alargado (para descartar otros objetos rectangulares).
+    *   `mean_s < 60 and mean_v > 130`: Analiza el color HSV del interior del contorno; debe tener **saturación baja y brillo alto** — característico de una hoja de papel blanca.
+5.  Si pasa todos los filtros, ese contorno se guarda como `paper_contour` y se dibuja un borde verde sobre él en el frame.
+
+### C. Actualización de la cámara virtual con teclado
+
+```python
+if glfw.get_key(window, glfw.KEY_UP) == glfw.PRESS: ...
+```
+Permite navegar por la escena 3D con las teclas de flechas y WASD:
+*   **↑ / ↓**: Avanzar/retroceder en la dirección hacia la que mira la cámara.
+*   **← / →**: Desplazarse lateralmente (strafe).
+*   **W / S**: Subir o bajar verticalmente.
+*   **A / D**: Girar la cámara a izquierda o derecha (modifica `girar`).
+*   `dx = math.sin(girar)` y `dz = -math.cos(girar)` calculan el **vector de dirección de vista** en base al ángulo de giro actual.
+
+### D. Renderizado del fondo (frame de cámara)
+
+```python
+glDisable(GL_DEPTH_TEST)
+glEnable(GL_TEXTURE_2D)
+gluOrtho2D(0, 1, 0, 1)
+```
+Dibuja el fotograma de la cámara web como un plano 2D que cubre toda la pantalla, **antes** de dibujar la escena 3D. Para lograrlo:
+1.  Desactiva el depth test y la iluminación (no aplican para una imagen 2D plana).
+2.  Sube el frame a la GPU como una textura 2D con `glTexImage2D`.
+3.  Cambia la proyección a ortográfica (`gluOrtho2D`) y dibuja un cuadrado que cubre la pantalla entera mapeando la textura sobre él.
+4.  Luego restaura el depth test y la iluminación para los objetos 3D.
+
+### E. Renderizado de la escena 3D con Realidad Aumentada
+
+```python
+if paper_contour is not None:
+    success, rvec, tvec = cv2.solvePnP(obj_pts, ordered_pts, camera_matrix, dist_coeffs)
+```
+
+Si se detectó la hoja de papel, se realiza el **pipeline completo de AR**:
+
+1.  **Ordenar esquinas**: Los 4 vértices del contorno se ordenan como: arriba-izquierda, arriba-derecha, abajo-derecha, abajo-izquierda.
+2.  **Definir objeto 3D**: Se define la hoja como un cuadrado de 84×84 unidades en 3D (`obj_pts`), centrado en el origen.
+3.  **`cv2.solvePnP`**: Este es el corazón del AR. Dada la posición de los 4 puntos en la imagen 2D (`ordered_pts`) y su correspondencia en el mundo 3D (`obj_pts`), calcula el **vector de rotación (`rvec`) y el vector de traslación (`tvec`)** que describen la posición y orientación de la hoja respecto a la cámara real.
+4.  **Construir la Matriz de Vista de OpenGL**: Convierte `rvec` en una matriz de rotación con `cv2.Rodrigues`, la ensambla en una matriz 4×4 y la multiplica por `cv_to_gl` (una matriz de corrección de ejes, porque OpenCV y OpenGL usan sistemas de coordenadas distintos — OpenCV tiene el eje Y hacia abajo, OpenGL hacia arriba).
+5.  **Configurar proyección**: Calcula el FOV de la cámara virtual usando la `focal_length` de la matriz intrínseca y llama a `gluPerspective` para que coincida con la lente real de la cámara web.
+6.  **`glLoadMatrixd`**: Carga la matriz de vista calculada directamente en OpenGL. Esto hace que la cámara virtual se comporte **exactamente igual** que la cámara física real.
+7.  **Dibujar escena**: Finalmente llama a `renderizar_escena_completa()` para dibujar toda la ciudad 3D encima de la hoja detectada.
+
+---
+
+## 4. Contador de FPS (líneas 1612–1618)
+
+```python
+if current_time - fps_timer >= 1.0:
+    fps = frame_count / (current_time - fps_timer)
+    glfw.set_window_title(window, f"{WINDOW_TITLE} - FPS: {fps:.1f}")
+```
+Cada segundo actualiza el título de la ventana con los FPS actuales.
+
+---
+
+## 5. Limpieza Final (líneas 1625–1630)
+
+```python
+finally:
+    glDeleteTextures(1, [bg_texture])
+    cap.release()
+    cv2.destroyAllWindows()
+    glfw.terminate()
+```
+
+El bloque `finally` garantiza que estos recursos siempre se liberen, **incluso si ocurre una excepción**:
+*   Borra la textura de la GPU.
+*   Libera la cámara web.
+*   Cierra cualquier ventana de OpenCV.
+*   Termina GLFW.
