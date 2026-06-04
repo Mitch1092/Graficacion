@@ -395,6 +395,7 @@ Los modelos complejos se construyen combinando las primitivas básicas dentro de
 *   **`dibujar_persona_supersonica`**: La silueta humana se modela con una esfera para la cabeza y cilindros sólidos para el torso, los brazos y las piernas. Recibe parámetros de rotación para cada extremidad (`ang_brazo_iz`, etc.) para poder simular poses o movimientos.
 *   **`dibujar_persona_caminando`**: Utiliza el modelo anterior y calcula las oscilaciones de las extremidades con una función senoidal en función del tiempo (`30.0 * math.sin(t * 4.0)`). Así, mientras un brazo va hacia adelante, el otro va hacia atrás, recreando el ciclo de caminata.
 *   **`dibujar_persona_en_patineta`**: Dibuja una tabla (`cubo`) y cuatro pequeñas ruedas (`esfera`). Coloca encima al personaje humano en una pose estática de equilibrio.
+*   **`dibujar_nave_espacial`**: Estaén hechas con un cubo y tienen una animación circular hecha con la función `rendrizar_flota_naves`.
 
 #### E. El Monstruo
 *   **`monstruo`**: Es una criatura orgánica modelada con geometría puramente esférica.
@@ -402,10 +403,14 @@ Los modelos complejos se construyen combinando las primitivas básicas dentro de
     *   Para dar un efecto orgánico, el tamaño del cuerpo oscila ligeramente usando escalado por tiempo (`glScalef(1 * a, 1 * a, 1 * a)` donde `a` depende de `sin(t)`).
     *   El ojo se compone de una esfera blanca grande y una pupila negra pequeña que orbita alrededor del centro del ojo mediante trayectorias calculadas con `cos(t)` y `sin(t)`.
 
-#### F. Basura y Elementos del Entorno
+#### F. Elementos del Entorno
 *   **`dibujar_monton_basura`**: Simula una pila de desechos desordenada. Se logra apilando varios cubos de colores marrones y grises con diferentes tamaños, inclinaciones (`glRotatef`) y posiciones semialeatorias.
 *   **`dibujar_lata_rodante`**: Una pequeña lata cilíndrica roja que avanza y regresa horizontalmente en la calle. Para que se vea realista, la rotación sobre su eje Z (`glRotatef(-giro_lata, 0, 0, 1)`) está vinculada matemáticamente con la distancia lineal recorrida, simulando que rueda sin resbalar sobre el suelo.
 *   **`nube`**: Creada con un grupo de 5 esferas rosas dispuestas de manera escalonada.
+*   **`tuberia_toxica`**: Creada con cilindros y una animación de burbujas siendo expulsadas hechas con esferas.
+*   **`dibujar_basurero`**: Está hecho con dos cubos de color distinto.
+*   **`dibujar_estrellas`**: Están hechas con esferas.
+
 
 ---
 
